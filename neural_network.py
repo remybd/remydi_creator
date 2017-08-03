@@ -21,14 +21,14 @@ dropout_pkeep = 0.8    # some dropout
 
 
 #one hot encoded vector
-#   [0<->127,0,1,2,3,4,5,6,7,8,9,c,i,n,,]
+#   [0<->127,c,i,n,,]
 #   0<->127 : for instrument and note
-#   128<->137 : for 1,2,3,4,5,6,7,8,9
-#   138 : c
-#   139 : i
-#   140 : n
-#   141 : ,
-#alphabet size = 141 + 1 = 142
+#   time between 1<->9 are code with the same numbers too
+#   128 : c
+#   129 : i
+#   130 : n
+#   131 : ,
+#alphabet size = 131 + 1 = 132
 
 #===== ALGO FOR NEURAL NETWORK =====
 
@@ -191,6 +191,7 @@ def drive_tensorflow(midi_directory="./"):
                 print(unn.decode_char(rc), end="")
                 ry = np.array([[rc]])
             print("end of generation")
+
 
 
         # save a checkpoint (every 500 batches)

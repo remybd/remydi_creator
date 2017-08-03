@@ -5,38 +5,34 @@ import numpy as np
 #c960i48n0,43,384n384,60,128n512,65,128
 
 #one hot encoded vector
-#   [0<->127,0,1,2,3,4,5,6,7,8,9,c,i,n,,]
+#   [0<->127,c,i,n,,]
 #   0<->127 : for instrument and note
-#   128<->137 : for 1,2,3,4,5,6,7,8,9
-#   138 : c
-#   139 : i
-#   140 : n
-#   141 : ,
-#alphabet size = 141 + 1 = 142
-ALPHA_SIZE = 142
-END_NOTE_VALUE = 127
-END_NUMBERS = 137
+#   time between 1<->9 are code with the same numbers too
+#   128 : c
+#   129 : i
+#   130 : n
+#   131 : ,
+#alphabet size = 131 + 1 = 132
+ALPHA_SIZE = 132
+END_NUMBERS = 127
 # ===== UTILS TO CREATE BATCH AND CUT FILES =====
 
 # map the inputs to the function blocks
-options = {"c": 138,
-           "i": 139,
-           "n": 140,
-           ",": 141,
+options = {"c": 128,
+           "i": 129,
+           "n": 130,
+           ",": 131,
 
-           138: "c",
-           139: "i",
-           140: "n",
-           141: ","
+           128: "c",
+           129: "i",
+           130: "n",
+           131: ","
            }
 
 
-def encode_char(char, full_number=False):
+def encode_char(char):
     if char.isdigit():
-        if full_number:
-            val = int(char)
-        else:
-            val = int(char) + END_NOTE_VALUE +1 #128 + value
+        val = int(char)
     else:
         val = options[char]
 
@@ -61,7 +57,7 @@ def convert_clock_and_instrument(cl_and_inst):
 
     # instrument convertion
     encoded_list.append(encode_char(char="i")) #always put a "i" because it was destroyed during the split
-    encoded_list.append(encode_char(char=inst, full_number=True))
+    encoded_list.append(encode_char(char=inst))
 
     return encoded_list
 
@@ -75,7 +71,7 @@ def convert_note(note):
     encoded_list.extend(list_char_convertion(list(note_comma_splitted[0])))#encode time
 
     encoded_list.append(encode_char(char=",")) #always put a "," because it was destroyed during the split
-    encoded_list.append(encode_char(char=note_comma_splitted[1], full_number=True))#encode all the note in one time
+    encoded_list.append(encode_char(char=note_comma_splitted[1]))#encode all the note in one time
     encoded_list.append(encode_char(char=",")) #always put a "," because it was destroyed during the split
 
     encoded_list.extend(list_char_convertion(list(note_comma_splitted[2])))#encode duration
@@ -100,14 +96,13 @@ def encode_text(data_string):
 
 
 def decode_char(val):
-    if val >= 0 and val <= END_NOTE_VALUE:
-        val = int(val) #0 <-> 127
-    elif val >= END_NUMBERS +1 and val < ALPHA_SIZE:
-        val = options[int(val)] #c i n ,
+    val = int(val)
+    if val > END_NUMBERS and val < ALPHA_SIZE:
+        res = options[val] #c i n ,
     else:
-        val = int(val) + END_NOTE_VALUE +1 #128 + generated value
+        res = val
 
-    return str(val)
+    return str(res)
 
 # return training data and validation data
 def generate_data_for_nn(data_string_list):
