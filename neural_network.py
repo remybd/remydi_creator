@@ -21,15 +21,9 @@ learning_rate = 0.001  # fixed learning rate
 dropout_pkeep = 0.8    # some dropout
 
 
-#one hot encoded vector
-#   [0<->127,0,1,2,3,4,5,6,7,8,9,c,i,n,,]
-#   0<->127 : for instrument and note
-#   128<->137 : for 1,2,3,4,5,6,7,8,9
-#   138 : c
-#   139 : i
-#   140 : n
-#   141 : ,
-#alphabet size = 141 + 1 = 142
+# one hot encoded vector
+#   [0,1,2,3,4,5,6,7,8,9,c ,i ,n ,,]
+# =>[0,1,2,3,4,5,6,7,8,9,10,11,12,13]
 #===== ALGO FOR NEURAL NETWORK =====
 
 

@@ -43,9 +43,8 @@ n512,65,128
 feed in the neural network:
 c960i48n0,43,384n384,60,128n512,65,128
 
-one hot encoded vector
-[0<->127,0,1,2,3,4,5,6,7,8,9,c,i,n,,]
-0<->127 : for instrument and note
+# one hot encoded vector
+#   [0,1,2,3,4,5,6,7,8,9,c ,i ,n ,,]
 '''
 '''
 in a second time:

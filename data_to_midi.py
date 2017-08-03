@@ -45,9 +45,9 @@ become
 2, 640, End_track
 0, 0, End_of_file
 
-one hot encoded vector
-[0<->127,0,1,2,3,4,5,6,7,8,9,c,i,n,,]
-0<->127 : for instrument and note'''
+# one hot encoded vector
+#   [0,1,2,3,4,5,6,7,8,9,c ,i ,n ,,]
+'''
 
 
 SEQUENCE_NUMBER = 2
