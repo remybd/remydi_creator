@@ -100,14 +100,15 @@ def encode_text(data_string):
 
 
 def decode_char(val):
+    val = int(val)
     if val >= 0 and val <= END_NOTE_VALUE:
-        val = int(val) #0 <-> 127
+        ret = val #0 <-> 127
     elif val >= END_NUMBERS +1 and val < ALPHA_SIZE:
-        val = options[int(val)] #c i n ,
+        ret = options[val] #c i n ,
     else:
-        val = int(val) + END_NOTE_VALUE +1 #128 + generated value
+        ret = val - (END_NOTE_VALUE+1) #generated value -128
 
-    return str(val)
+    return str(ret)
 
 # return training data and validation data
 def generate_data_for_nn(data_string_list):
