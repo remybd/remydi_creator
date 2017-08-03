@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib import layers
-from tensorflow.contrib import rnn
 import os
 import time
 import math
@@ -30,6 +29,7 @@ dropout_pkeep = 0.8    # some dropout
 #   140 : n
 #   141 : ,
 #alphabet size = 141 + 1 = 142
+
 #===== ALGO FOR NEURAL NETWORK =====
 
 

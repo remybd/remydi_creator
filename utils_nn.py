@@ -2,39 +2,47 @@ import midi_to_data as mtd
 import sys
 import numpy as np
 
-# one hot encoded vector
-#   [0,1,2,3,4,5,6,7,8,9,c ,i ,n ,,]
-# =>[0,1,2,3,4,5,6,7,8,9,10,11,12,13]
-ALPHA_SIZE = 14
+#c960i48n0,43,384n384,60,128n512,65,128
+
+#one hot encoded vector
+#   [0<->127,0,1,2,3,4,5,6,7,8,9,c,i,n,,]
+#   0<->127 : for instrument and note
+#   128<->137 : for 1,2,3,4,5,6,7,8,9
+#   138 : c
+#   139 : i
+#   140 : n
+#   141 : ,
+#alphabet size = 141 + 1 = 142
+ALPHA_SIZE = 142
+END_NOTE_VALUE = 127
+END_NUMBERS = 137
 # ===== UTILS TO CREATE BATCH AND CUT FILES =====
 
 # map the inputs to the function blocks
-options = {"c": 10,
-           "i": 11,
-           "n": 12,
-           ",": 13,
+options = {"c": 138,
+           "i": 139,
+           "n": 140,
+           ",": 141,
 
-           10: "c",
-           11: "i",
-           12: "n",
-           13: ","
+           138: "c",
+           139: "i",
+           140: "n",
+           141: ","
            }
 
 
-def encode_char(char):
+def encode_char(char, full_number=False):
     if char.isdigit():
-        val = int(char)
+        if full_number:
+            val = int(char)
+        else:
+            val = int(char) + END_NOTE_VALUE +1 #128 + value
     else:
         val = options[char]
 
     return val
 
-
-def encode_text(data_string):
-    # each char of data_string is going one after the others in 'a'
-    # for each a (so for each char), we call encode char
-    # then we convert the iterator sendback by map to a list
-    list_char = list(data_string)
+def list_char_convertion(list_char):
     encoded_list = []
     for char in list_char:
         encoded_list.append(encode_char(char=char))
@@ -42,11 +50,62 @@ def encode_text(data_string):
     return encoded_list
 
 
+def convert_clock_and_instrument(cl_and_inst):
+    encoded_list = []
+
+    # convert clock and instrument
+    clock, inst = cl_and_inst.split("i")
+
+    # clock convertion
+    encoded_list.extend(list_char_convertion(list(clock)))
+
+    # instrument convertion
+    encoded_list.append(encode_char(char="i")) #always put a "i" because it was destroyed during the split
+    encoded_list.append(encode_char(char=inst, full_number=True))
+
+    return encoded_list
+
+
+def convert_note(note):
+    encoded_list = []
+    encoded_list.append(encode_char(char="n")) #always put a "n" because it was destroyed during the split
+
+    note_comma_splitted = note.split(",")
+
+    encoded_list.extend(list_char_convertion(list(note_comma_splitted[0])))#encode time
+
+    encoded_list.append(encode_char(char=",")) #always put a "," because it was destroyed during the split
+    encoded_list.append(encode_char(char=note_comma_splitted[1], full_number=True))#encode all the note in one time
+    encoded_list.append(encode_char(char=",")) #always put a "," because it was destroyed during the split
+
+    encoded_list.extend(list_char_convertion(list(note_comma_splitted[2])))#encode duration
+
+    return encoded_list
+
+def encode_text(data_string):
+    #data_string example : c960i48n0,43,384n384,60,128n512,65,128
+
+    encoded_list = []
+    list_data_n_splitted = data_string.split("n")
+
+    #convert clock and instrument to encoded numbers
+    cl_and_inst = list_data_n_splitted.pop(0)
+    encoded_list.extend(convert_clock_and_instrument(cl_and_inst))
+
+    #convert note to encoded numbers
+    for note in list_data_n_splitted:
+        encoded_list.extend(convert_note(note))
+
+    return encoded_list
+
+
 def decode_char(val):
-    if val >= 0 and val <= 9:
-        val = int(val)
+    if val >= 0 and val <= END_NOTE_VALUE:
+        val = int(val) #0 <-> 127
+    elif val >= END_NUMBERS +1 and val < ALPHA_SIZE:
+        val = options[int(val)] #c i n ,
     else:
-        val = options[int(val)]
+        val = int(val) + END_NOTE_VALUE +1 #128 + generated value
 
     return str(val)
 
