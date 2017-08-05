@@ -63,6 +63,8 @@ def create_network_model(batchsize, Xo, Yo_, Hin):
     mcell = tf.nn.rnn_cell.MultiRNNCell(cells=cells, state_is_tuple=False)
     Yr, H = tf.nn.dynamic_rnn(mcell, Xo, initial_state=Hin)
 
+    H = tf.identity(H, name='H')  # just to give it a name
+
     # === Softmax layer ===
     # add the softmax layer at the output
     # one softmax to manage only one time BATCH_SIZE * SEQ_LEN (100 * 40) char
@@ -71,12 +73,12 @@ def create_network_model(batchsize, Xo, Yo_, Hin):
     Ylogits = layers.linear(Yf, ALPHA_SIZE)
     Yf_ = tf.reshape(Yo_, [-1, ALPHA_SIZE])
 
-    Yo = tf.nn.softmax(Ylogits)
+    Yo = tf.nn.softmax(Ylogits, name="Yo")
 
     # take the higher prediction of the softmax and give the index (come back from one hot encoding)
     Ypredictions = tf.arg_max(Yo, 1)
     # reshape to separate the sequences fro mthe softmax
-    Ypredictions = tf.reshape(Ypredictions, [batchsize, -1])
+    Ypredictions = tf.reshape(Ypredictions, [batchsize, -1], name="Y")
 
     # === Loss and Gradient ===
     loss = tf.nn.softmax_cross_entropy_with_logits(logits=Ylogits, labels=Yf_)

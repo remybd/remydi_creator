@@ -144,8 +144,12 @@ def data_to_midi(data_string=""):
     end_track = create_fixed_end_track(track_num=2, last_time=last_time)
 
     music_string = compile_music_string(header, start_track, instrument, note_list, end_track)
+
+    if not os.path.exists("midi_generated"):
+        os.mkdir("midi_generated")
+
     unique_filename = str(uuid.uuid4())
-    ext.csv_to_midi(music_string, unique_filename, 1)
+    ext.csv_to_midi(music_string, "midi_generated/" + unique_filename, 1)
 
 
 def main():
