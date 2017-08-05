@@ -1,5 +1,7 @@
 import sys, os, glob
 import extract_tracks as ext
+import instrument_list as il
+import instruments_stats as istats
 
 '''
 data to keep
@@ -132,6 +134,9 @@ def format_data_to_string(clock_pulse, instrument,note_list):
     return data_string
 
 
+#=== analyse one track (the 2nd) ===
+
+
 def midi_to_data(in_midi_file=""):
     try:
         csv_data = ext.midi_to_csv(midi_file_path=in_midi_file)
@@ -150,10 +155,9 @@ def midi_to_data(in_midi_file=""):
         data_string = format_data_to_string(clock_pulse, instrument, note_list_fusion)
         return data_string
 
-
-
 def midi_to_data_all_directory(in_midi_directory="./"):
     data_string_list = []
+
     for file in glob.glob(in_midi_directory + "**/*.mid", recursive=True):
         file_path = os.path.join(in_midi_directory, file)
 
@@ -163,15 +167,78 @@ def midi_to_data_all_directory(in_midi_directory="./"):
     return data_string_list
 
 
+#=== data for specific instruments ==
+
+
+def inst_to_data(in_midi_file="", instrument_name="piano"):
+    try:
+        csv_data = ext.midi_to_csv(midi_file_path=in_midi_file)
+    except UnicodeDecodeError as err:
+        print("Error for file ",in_midi_file, " :", err)
+    else:
+        splitted_csv_data = csv_data.split("\n")
+        number_tracks = istats.get_number_tracks(splitted_csv_data)
+        instrument_numbers = il.instrument_classification[instrument_name]
+
+        data_string_list = []
+        #search the track playing the asked instrument
+        #those tracks are converted to data and added to data_string_list
+        for i in range(2, number_tracks + 1):
+            track = extract_midi_track(splitted_csv_data, i)
+            instrument = extract_instrument(track=track)
+
+            instrument_num = int(instrument.replace("i", ""))
+            if instrument_num in instrument_numbers:
+                clock_pulse = extract_clock_pulse(splitted_csv_data=splitted_csv_data)
+                note_list = extract_notes(track=track)
+                note_list_fusion = find_end_notes(note_list)
+
+                data_string = format_data_to_string(clock_pulse, instrument, note_list_fusion)
+                data_string_list.append(data_string)
+
+        return data_string_list
+
+
+
+def inst_to_data_all_directory(in_midi_directory="./", instrument_name="piano"):
+    data_string_list = []
+
+    for file in glob.glob(in_midi_directory + "**/*.mid", recursive=True):
+        file_path = os.path.join(in_midi_directory, file)
+
+        print("instrument to data for :", file_path)
+        datas_string = inst_to_data(in_midi_file=file_path, instrument_name=instrument_name)
+        data_string_list.extend(datas_string)
+
+    return data_string_list
+
+
+
 def main():
-    if len(sys.argv) > 1:
+
+    if len(sys.argv) == 3:
+        instrument_name = sys.argv[2]
+        if instrument_name not in il.instrument_stats.keys():
+            sys.exit("instrument name not in the list : " + str(il.instrument_stats.keys()))
+
         midi_file = sys.argv[1]
         if os.path.isdir(midi_file):
-            midi_to_data_all_directory(midi_file)
+            inst_to_data_all_directory(in_midi_directory=midi_file, instrument_name=instrument_name)
+        elif os.path.isfile(midi_file):
+            inst_to_data(in_midi_file=midi_file, instrument_name=instrument_name)
+        else:
+            sys.exit("give a midi file or a directory")
+
+    elif len(sys.argv) == 2:
+        midi_file = sys.argv[1]
+        if os.path.isdir(midi_file):
+            midi_to_data_all_directory(in_midi_directory=midi_file)
         elif os.path.isfile(midi_file):
             midi_to_data(in_midi_file=midi_file)
+        else:
+            sys.exit("give a midi file or a directory")
     else:
-        print("give a midi file or a directory")
+        sys.exit("give a midi file or a directory")
 
 
 if __name__ == "__main__":

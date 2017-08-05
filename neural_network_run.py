@@ -3,7 +3,7 @@ import numpy as np
 import os
 import utils_nn as unn
 import sys
-import neural_network as nn_train
+import neural_network_train as nn_train
 import data_to_midi as dtm
 
 ALPHA_SIZE = unn.ALPHA_SIZE
