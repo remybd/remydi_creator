@@ -1,0 +1,33 @@
+0, 0, Header, 1, 2, 960
+1, 0, Start_track
+1, 0, Time_signature, 4, 2, 24, 8
+1, 0, End_track
+2, 0, Start_track
+2, 0, MIDI_port, 0
+2, 0, Program_c, 0, 47
+2, 3360, Note_on_c, 0, 38, 100
+2, 3840, Note_on_c, 0, 40, 100
+2, 3840, Note_on_c, 0, 38, 100
+2, 3840, Note_on_c, 0, 38, 100
+2, 4320, Note_on_c, 0, 38, 100
+2, 5040, Note_on_c, 0, 38, 0
+2, 5280, Note_on_c, 0, 38, 100
+2, 5520, Note_on_c, 0, 40, 0
+2, 5520, Note_on_c, 0, 38, 0
+2, 5760, Note_on_c, 0, 43, 100
+2, 6240, Note_on_c, 0, 38, 0
+2, 6240, Note_on_c, 0, 38, 100
+2, 6720, Note_on_c, 0, 38, 0
+2, 6720, Note_on_c, 0, 43, 0
+2, 6720, Note_on_c, 0, 38, 100
+2, 7200, Note_on_c, 0, 38, 100
+2, 7680, Note_on_c, 0, 38, 0
+2, 7680, Note_on_c, 0, 38, 100
+2, 8160, Note_on_c, 0, 38, 0
+2, 9120, Note_on_c, 0, 38, 0
+2, 9120, Note_on_c, 0, 38, 100
+2, 9600, Note_on_c, 0, 38, 0
+2, 11040, Note_on_c, 0, 38, 0
+2, 20160, Note_on_c, 0, 38, 0
+2, 20160, End_track
+0, 0, End_of_file

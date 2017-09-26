@@ -13,7 +13,7 @@ def get_number_tracks(splitted_csv_data):
         splitted_line = splitted_csv_data[0].split(", ")
         nb_tracks =  int(splitted_line[4])
 
-    return nb_tracks
+    return int(nb_tracks)
 
 
 def add_instrument_to_stats(instrument="0"):

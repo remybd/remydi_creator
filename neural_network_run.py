@@ -23,13 +23,21 @@ N_LAYERS = 3
 
 
 #checkpoints
-DEFAULT_CHECKPOINT = "checkpoints/rnn_train_1501793298"
-DEFAULT_NB_ITER = "32000000"
+#DEFAULT_CHECKPOINT = "checkpoints/rnn_train_1501793298" #2nd track all instruments 3neurons
+#DEFAULT_CHECKPOINT = "checkpoints/rnn_train_1501972296" #piano 3neurons
+#DEFAULT_CHECKPOINT = "checkpoints/rnn_train_1502014101" #piano 4neurons + dropout -> not really better
+#DEFAULT_CHECKPOINT = "checkpoints/rnn_train_1502050315" #all instru 3neurons + dropout + lr decay
+DEFAULT_CHECKPOINT = "checkpoints/rnn_train_1502138544" #brass 3neurons + dropout + lr decay + 50 char
+
+
+DEFAULT_NB_ITER = "57500000"
 MAX_CHAR_GENERATED = 5000
 
 def generate_char(sess, y, h):
-    yo, h = sess.run(['Softmax:0', 'rnn/while/Exit_2:0'], feed_dict={'X:0': y, 'Hin:0': h, 'batchsize:0': 1})
+    #yo, h = sess.run(['Softmax:0', 'rnn/while/Exit_2:0'], feed_dict={'X:0': y, 'Hin:0': h, 'batchsize:0': 1})
     # yo, h = sess.run(['Yo:0', 'H:0'], feed_dict={'X:0': y, 'Hin:0': h, 'batchsize:0': 1})
+    yo, h = sess.run(['Yo:0', 'H:0'], feed_dict={'X:0': y, 'Hin:0': h, 'pkeep:0': 1.0, 'batchsize:0': 1})
+
 
     # If sampling is be done from the topn most likely characters, the generated text
     # is more credible. If topn is not set, it defaults to the full
@@ -41,6 +49,35 @@ def generate_char(sess, y, h):
 
     return y, h, c
 
+def search_track(y, h, sess):
+    c = ""
+    while (c != "c"):
+        y, h, c = generate_char(sess, y, h)
+
+    return y, h, c
+
+
+def generate_true_track(y, h, sess):
+    track = "c"
+    c = ""
+    nb_char = 1
+    already_an_i = False
+    while (c != "c" and nb_char < MAX_CHAR_GENERATED):
+        track += c
+        y, h, c = generate_char(sess, y, h)
+        nb_char += 1
+
+        if nb_char % 200 == 0:
+            print(str(nb_char) + " chars generated")
+
+        # if we find another instrument before the start of a new track
+        if c == "i":
+            if already_an_i:
+                break
+            else:
+                already_an_i = True
+
+    return y, h, track
 
 def run_trained_rnn(checkpoint=DEFAULT_CHECKPOINT, nb_iter=DEFAULT_NB_ITER):
 
@@ -52,38 +89,18 @@ def run_trained_rnn(checkpoint=DEFAULT_CHECKPOINT, nb_iter=DEFAULT_NB_ITER):
         # initial values
         h = np.zeros([1, CELL_SIZE * N_LAYERS], dtype=np.float32)  # [ BATCHSIZE, CELL_SIZE * NLAYERS]
 
-        #search the begining of a track
+        # search the begining of a track
         print("searching a track ...")
-        c = ""
-        while(c != "c"):
-            y, h, c = generate_char(sess, y, h)
-
-        c = ""
-        while (c != "c"):
-            y, h, c = generate_char(sess, y, h)
+        y, h, c = search_track(y, h, sess)
+        y, h, c = search_track(y, h, sess)
 
         #generate while we have notes
         print("start generating a true track")
-        track = "c"
-        c = ""
-        nb_char = 1
-        already_an_i = False
-        while (c != "c" and nb_char < MAX_CHAR_GENERATED):
-            track += c
-            y, h, c = generate_char(sess, y, h)
-            nb_char += 1
+        track = ""
+        while "n" not in track:
+            y, h, track = generate_true_track(y, h, sess)
+            track = track[:track.rfind('n')]
 
-            if nb_char % 200 == 0:
-                print(str(nb_char) + " chars generated")
-
-            #if we find another instrument before the start of a new track
-            if c == "i":
-                if already_an_i:
-                    break
-                else:
-                    already_an_i = True
-
-        track = track[:track.rfind('n')]
         print(track)
         dtm.data_to_midi(track)
 

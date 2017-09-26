@@ -1,6 +1,7 @@
 import midi_to_data as mtd
 import sys
 import numpy as np
+import instrument_list as il
 
 #c960i48n0,43,384n384,60,128n512,65,128
 
@@ -159,10 +160,18 @@ def print_data_stats(datalen, valilen, epoch_size):
     print("Training text size is {:.2f}MB with {:.2f}KB set aside for validation.".format(datalen_mb, valilen_kb)
           + " There will be {} batches per epoch".format(epoch_size))
 
+def load_data_all_instruments(directory="./"):
+    data_string_list = []
 
+    for key in il.instrument_classification.keys():
+        data_string_list.extend(mtd.inst_to_data_all_directory(directory, instrument_name=key))
+
+    return data_string_list
 
 def load_midi_files_to_data(directory="./", batch_size=100, seq_len=40):
-    data_string_list = mtd.midi_to_data_all_directory(directory)
+    #data_string_list = mtd.midi_to_data_all_directory(directory)
+    data_string_list = mtd.inst_to_data_all_directory(directory, instrument_name="brass")
+    #data_string_list= load_data_all_instruments(directory)
     code_text, valid_text = generate_data_for_nn(data_string_list)
 
     # display some stats on the data

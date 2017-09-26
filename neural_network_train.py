@@ -9,14 +9,16 @@ import sys
 
 ALPHA_SIZE = unn.ALPHA_SIZE
 CELL_SIZE = 512 # size of neuron layers in a cell : 512 neuron by layers
-SEQ_LEN = 40
+SEQ_LEN = 50
 N_LAYERS = 3
 BATCH_SIZE = 100
 DISPLAY_FREQ = 50
-_50_BATCHES = DISPLAY_FREQ * BATCH_SIZE * SEQ_LEN
+_50_BATCHES = DISPLAY_FREQ * BATCH_SIZE * SEQ_LEN #200 000
 
 
 learning_rate = 0.001  # fixed learning rate
+decay_steps = 5000000
+decay_rate = 0.9
 dropout_pkeep = 0.8    # some dropout
 
 
@@ -47,11 +49,18 @@ def create_placeholders():
 
     Hin = tf.placeholder(tf.float32, [None, CELL_SIZE * N_LAYERS], name="Hin")  # entry state because recurent network
 
-    return batchsize, X, Y_, Hin, Xo, Yo_
+    pkeep = tf.placeholder(tf.float32, name="pkeep")
+
+    #learning rate decay : decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
+    #lr = tf.placeholder(tf.float32, name="lr")
+    gs = tf.Variable(0, trainable=False, name="gs")
+    lr = tf.train.exponential_decay(learning_rate, gs, decay_steps, decay_rate, staircase=True, name="lr")
+
+    return batchsize, X, Y_, Hin, Xo, Yo_, pkeep, lr, gs
 
 
 
-def create_network_model(batchsize, Xo, Yo_, Hin):
+def create_network_model(batchsize, Xo, Yo_, Hin, pkeep, lr):
     print("Create network model")
     # === Grid Cell ===
     # create the grid of GRU CELLS
@@ -60,7 +69,10 @@ def create_network_model(batchsize, Xo, Yo_, Hin):
         cell = tf.nn.rnn_cell.GRUCell(num_units=CELL_SIZE)
         cells.append(cell)
 
-    mcell = tf.nn.rnn_cell.MultiRNNCell(cells=cells, state_is_tuple=False)
+    #add dropout to the column of cells.
+    dropcells = [tf.nn.rnn_cell.DropoutWrapper(cell, input_keep_prob=pkeep) for cell in cells]
+    mcell = tf.nn.rnn_cell.MultiRNNCell(cells=dropcells, state_is_tuple=False)
+    mcell = tf.nn.rnn_cell.DropoutWrapper(mcell, output_keep_prob=pkeep) #dropout for the softmax layer
     Yr, H = tf.nn.dynamic_rnn(mcell, Xo, initial_state=Hin)
 
     H = tf.identity(H, name='H')  # just to give it a name
@@ -83,7 +95,7 @@ def create_network_model(batchsize, Xo, Yo_, Hin):
     # === Loss and Gradient ===
     loss = tf.nn.softmax_cross_entropy_with_logits(logits=Ylogits, labels=Yf_)
     loss = tf.reshape(loss, [batchsize, -1])
-    train_step = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+    train_step = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)
 
     return train_step, Ypredictions, H, loss, Yo
 
@@ -121,8 +133,8 @@ def drive_tensorflow(midi_directory="./"):
     #load data
     code_text, valid_text = unn.load_midi_files_to_data(midi_directory, BATCH_SIZE, SEQ_LEN)
 
-    batchsize, X, Y_, Hin, Xo, Yo_ = create_placeholders()
-    train_step, Y, H, loss, Yo = create_network_model(batchsize, Xo, Yo_, Hin)#put all the args in the network model
+    batchsize, X, Y_, Hin, Xo, Yo_, pkeep, lr, gs = create_placeholders()
+    train_step, Y, H, loss, Yo = create_network_model(batchsize, Xo, Yo_, Hin, pkeep, lr)#put all the args in the network model
 
     # Init for saving models. They will be saved into a directory named 'checkpoints'.
     # Only the last checkpoint is kept.
@@ -145,17 +157,18 @@ def drive_tensorflow(midi_directory="./"):
 
     step = 0
 
+
     #training loop
     print("Start training loop")
-    for x, y_, epoch in unn.rnn_minibatch_sequencer(code_text, BATCH_SIZE, SEQ_LEN, nb_epochs=10):
+    for x, y_, epoch in unn.rnn_minibatch_sequencer(code_text, BATCH_SIZE, SEQ_LEN, nb_epochs=15):
         #train the model
-        dic = {X:x, Y_:y_, Hin: inH, batchsize: BATCH_SIZE} #x = batch entry; y = batch output, inH = batch initial states
+        dic = {X:x, Y_:y_, Hin: inH, gs: step, pkeep: dropout_pkeep, batchsize: BATCH_SIZE} #x = batch entry; y = batch output, inH = batch initial states
 
         _, y, outH =  sess.run([train_step, Y, H], feed_dict=dic)
 
         # log training data for Tensorboard display a mini-batch of sequences (every 50 batches)
         if step % _50_BATCHES == 0:
-            feed_dict = {X: x, Y_: y_, Hin: inH, batchsize: BATCH_SIZE}  # no dropout for validation
+            feed_dict = {X: x, Y_: y_, Hin: inH, pkeep: 1.0, batchsize: BATCH_SIZE}  # no dropout for validation
             y, l, bl, acc, smm = sess.run([Y, seqloss, batchloss, accuracy, summaries], feed_dict=feed_dict)
             summary_writer.add_summary(smm, step)
 
@@ -173,7 +186,7 @@ def drive_tensorflow(midi_directory="./"):
             vali_x, vali_y, _ = next(unn.rnn_minibatch_sequencer(valid_text, bsize, VALID_SEQLEN, 1))  # all data in 1 batch
             vali_nullstate = np.zeros([bsize, CELL_SIZE * N_LAYERS])
 
-            feed_dict = {X: vali_x, Y_: vali_y, Hin: vali_nullstate, batchsize: bsize}
+            feed_dict = {X: vali_x, Y_: vali_y, Hin: vali_nullstate, pkeep: 1.0, batchsize: bsize}
             ls, acc, smm = sess.run([batchloss, accuracy, summaries], feed_dict=feed_dict)
             #log validation
             unn.print_validation_stats(ls, acc)
@@ -188,7 +201,7 @@ def drive_tensorflow(midi_directory="./"):
             ry = np.array([[unn.encode_char("0")]])
             rh = np.zeros([1, CELL_SIZE * N_LAYERS])
             for k in range(1000):
-                ryo, rh = sess.run([Yo, H], feed_dict={X: ry, Hin: rh, batchsize: 1})
+                ryo, rh = sess.run([Yo, H], feed_dict={X: ry, Hin: rh, pkeep: 1.0, batchsize: 1})
                 rc = unn.sample_from_probabilities(ryo, topn=10 if epoch <= 1 else 2)
                 print(unn.decode_char(rc), end="")
                 ry = np.array([[rc]])

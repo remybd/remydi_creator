@@ -171,6 +171,8 @@ def midi_to_data_all_directory(in_midi_directory="./"):
 
 
 def inst_to_data(in_midi_file="", instrument_name="piano"):
+    data_string_list = []
+
     try:
         csv_data = ext.midi_to_csv(midi_file_path=in_midi_file)
     except UnicodeDecodeError as err:
@@ -180,7 +182,6 @@ def inst_to_data(in_midi_file="", instrument_name="piano"):
         number_tracks = istats.get_number_tracks(splitted_csv_data)
         instrument_numbers = il.instrument_classification[instrument_name]
 
-        data_string_list = []
         #search the track playing the asked instrument
         #those tracks are converted to data and added to data_string_list
         for i in range(2, number_tracks + 1):
@@ -196,7 +197,7 @@ def inst_to_data(in_midi_file="", instrument_name="piano"):
                 data_string = format_data_to_string(clock_pulse, instrument, note_list_fusion)
                 data_string_list.append(data_string)
 
-        return data_string_list
+    return data_string_list
 
 
 
