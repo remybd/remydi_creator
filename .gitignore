@@ -1,4 +1,5 @@
 log/**
 checkpoints/**
 .idea/**
+.idea
 __pycache__/**

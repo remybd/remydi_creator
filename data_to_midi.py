@@ -111,16 +111,17 @@ def create_note_list(data_string_splitted,track_num=SEQUENCE_NUMBER):
 
     for note in data_string_splitted:
         note_data = note.split(",")
-        start_time = note_data[0]
-        note = note_data[1]
-        duration = note_data[2]
+        if len(note_data) == 3:
+            start_time = note_data[0]
+            note = note_data[1]
+            duration = note_data[2]
 
-        end_time = str(int(start_time) + int(duration))
+            end_time = str(int(start_time) + int(duration))
 
-        unordered_note_list.append((int(start_time),
-                        string_track_num + start_time + ", Note_on_c, 0, " + note + ", " + CLASSICAL_VELOCITY))
-        unordered_note_list.append((int(end_time),
-                        string_track_num + end_time + ", Note_on_c, 0, " + note + ", 0"))
+            unordered_note_list.append((int(start_time),
+                            string_track_num + start_time + ", Note_on_c, 0, " + note + ", " + CLASSICAL_VELOCITY))
+            unordered_note_list.append((int(end_time),
+                            string_track_num + end_time + ", Note_on_c, 0, " + note + ", 0"))
 
     sorted_note_list = sorted(unordered_note_list, key=lambda note: note[0])
 
@@ -144,8 +145,12 @@ def data_to_midi(data_string=""):
     end_track = create_fixed_end_track(track_num=2, last_time=last_time)
 
     music_string = compile_music_string(header, start_track, instrument, note_list, end_track)
+
+    if not os.path.exists("midi_generated"):
+        os.mkdir("midi_generated")
+
     unique_filename = str(uuid.uuid4())
-    ext.csv_to_midi(music_string, unique_filename, 1)
+    ext.csv_to_midi(music_string, "midi_generated/" + unique_filename, 1)
 
 
 def main():
